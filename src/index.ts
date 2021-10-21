@@ -1,7 +1,8 @@
 import joplin from 'api';
+import { noteVariables } from './noteVariables';
 
 joplin.plugins.register({
 	onStart: async function() {
-		console.info('Hello world. Test plugin started!');
+		noteVariables.init();
 	},
 });
