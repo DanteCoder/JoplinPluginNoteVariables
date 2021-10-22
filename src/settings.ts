@@ -4,7 +4,7 @@ import { SettingItemType } from "api/types";
 export namespace settings {
 
     export async function register() {
-        await joplin.settings.registerSection('noteVariablesSection',{
+        await joplin.settings.registerSection('noteVariablesSection', {
             label: "Note Variables",
         });
 
@@ -19,7 +19,7 @@ export namespace settings {
             }
         })
 
-        
+
 
 
     }

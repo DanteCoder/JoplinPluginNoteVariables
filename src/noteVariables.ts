@@ -10,26 +10,28 @@ export namespace noteVariables {
 
     export async function init() {
         console.log('Note Variables plugin started!');
-        
+
         pluginPanel = await panels.create('panel_1');
 
         await panels.setHtml(pluginPanel, 'Loading... :)');
         await panels.addScript(pluginPanel, './webview.js')
 
-        await panels.onMessage(pluginPanel, (message:any) => {
-            if (message.name === 'PUT'){
+        await panels.onMessage(pluginPanel, (message: any) => {
+            if (message.name === 'PUT') {
                 variables[message.key] = message.value;
                 updateVariablesSetting();
-                
+                updateNoteVariablesPanel();
             }
-            if (message.name === 'DELETE'){
+
+            if (message.name === 'DELETE') {
                 delete variables[message.key];
                 updateVariablesSetting();
+                updateNoteVariablesPanel();
             }
 
             console.log(variables);
         })
-        
+
         await settings.register();
 
         variables = JSON.parse(await joplin.settings.value('variables'));
@@ -43,13 +45,13 @@ export namespace noteVariables {
         }) */
 
         await joplin.commands.register({
-			name: 'togglePanel',
+            name: 'togglePanel',
             label: 'Note Variables',
             iconName: 'fas fa-at',
-			execute: async () => {
+            execute: async () => {
                 console.log('testing my command.')
             }
-		})
+        })
 
         await joplin.views.toolbarButtons.create('variablesButton', 'togglePanel', ToolbarButtonLocation.EditorToolbar);
 
@@ -64,20 +66,20 @@ export namespace noteVariables {
             const varsHtml = [];
 
 
-            for (const key of keys){
+            for (const key of keys) {
                 console.log(key);
                 console.log(variables[key]);
                 varsHtml.push(`
                 <tr>
                     <td><input type="checkbox" id="${key}" name="${key}" value="1"></td>
-                    <td>${key}</td>
+                    <td id="var_${key}">${key}</td>
                     <td>${variables[key]}</td>
                 <tr>`);
             }
 
 
             await panels.setHtml(pluginPanel, `
-                    <form id="deleteVars">
+                    <form id="deleteVars" action="javascript:;" onsubmit="deleteVariables()" class="varList">
                         <div>
                             <table>
                                 <tr>
@@ -87,6 +89,7 @@ export namespace noteVariables {
                                 </tr>
                                 ${varsHtml.join('\n')}
                             </table>
+                            <input type="submit" id="delete_vars_button" value="Delete selected" onClick="console.log('click delete')">
                         </div>
                     </form>
                     <form id="createVar" name="createVar" action="javascript:;" onsubmit="putVariable()">
@@ -95,7 +98,7 @@ export namespace noteVariables {
                                 <tr>
                                     <td><input type="text" id="new_variable" name="new_variable" placeholder="New variable"></td>
                                     <td><input type="text" id="new_value" name="new_value" placeholder="Value"></td>
-                                    <td><input type="submit" id="new_var_button" value="Add variable" onClick="console.log('click')"></td>
+                                    <td><input type="submit" id="new_var_button" value="Add variable" onClick="console.log('click add var')"></td>
                                 </tr>
                             </table>
                         </div>
