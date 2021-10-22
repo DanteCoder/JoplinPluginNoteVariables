@@ -4,40 +4,30 @@ import { ToolbarButtonLocation } from "api/types";
 
 export namespace noteVariables {
 
-    let variables = {};
-    const dialogs = joplin.views.dialogs;
+    let variables = null;
     const panels = joplin.views.panels;
     let pluginPanel = null;
 
     export async function init() {
         console.log('Note Variables plugin started!');
         
-        
-        
-        
-        
-        const handle = await dialogs.create('myDialog1');
-		await dialogs.setHtml(handle, '<p>Testing dialog with default buttons</p><p>Second line</p><p>Third linexxx</p>');
-		
-        
-        
-        
-        
-        
         pluginPanel = await panels.create('panel_1');
 
         await panels.setHtml(pluginPanel, 'Loading... :)');
 
-        await updateNoteVariablesPanel();
-
+        
         await settings.register();
+
+        variables = JSON.parse(await joplin.settings.value('variables'));
+
+        await updateNoteVariablesPanel();
 
         joplin.settings.onChange(async (event: any) => {
             if (event.keys.indexOf('variables') !== -1){
                 variables = JSON.parse(await joplin.settings.value('variables'));
             }
         })
-
+        
 
         await joplin.commands.register({
 			name: 'openPopup',
@@ -45,8 +35,6 @@ export namespace noteVariables {
             iconName: 'fas fa-at',
 			execute: async () => {
                 console.log('testing my command.')
-                const result = await dialogs.open(handle);
-		        console.info('Got result: ' + JSON.stringify(result));
             }
 		})
 
@@ -55,6 +43,23 @@ export namespace noteVariables {
 
 
         async function updateNoteVariablesPanel() {
+
+            const keys = Object.keys(variables).sort();
+
+            const varsHtml = [];
+
+
+            for (const key of keys){
+                console.log(key);
+                console.log(variables[key]);
+                varsHtml.push(`
+                <tr>
+                    <td>${key}</td>
+                    <td>${variables[key]}</td>
+                <tr>`);
+            }
+
+
             await panels.setHtml(pluginPanel, `
                 <div>
                 
@@ -63,8 +68,7 @@ export namespace noteVariables {
                             <th>Variable name</th>
                             <th>Value</th>
                         </tr>
-                    
-                    
+                        ${varsHtml.join('\n')}
                     </table>
                 
                 </div>
