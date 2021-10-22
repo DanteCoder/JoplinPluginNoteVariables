@@ -8,11 +8,13 @@ export namespace noteVariables {
     const panels = joplin.views.panels;
     let pluginPanel = null;
 
+    let is_panel_shown = false;
+
     export async function init() {
         console.log('Note Variables plugin started!');
 
         pluginPanel = await panels.create('panel_1');
-
+        await panels.hide(pluginPanel);
         await panels.setHtml(pluginPanel, 'Loading... :)');
         await panels.addScript(pluginPanel, './webview.js')
 
@@ -46,9 +48,16 @@ export namespace noteVariables {
 
         await joplin.commands.register({
             name: 'togglePanel',
-            label: 'Note Variables',
+            label: 'Show/Hide Variables panel',
             iconName: 'fas fa-at',
             execute: async () => {
+                if (is_panel_shown){
+                    await panels.hide(pluginPanel);
+                    is_panel_shown = false;
+                }else{
+                    await panels.show(pluginPanel);
+                    is_panel_shown = true;
+                }
                 console.log('testing my command.')
             }
         })
