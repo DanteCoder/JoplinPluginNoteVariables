@@ -7,8 +7,6 @@ export default function (context) {
 				return self.renderToken(tokens, idx, options, env, self);
 			};
 
-			console.log(markdownIt.renderer.rules);
-
 			markdownIt.renderer.rules.text = function (tokens, idx, options, env, self) {
 				const token = tokens[idx];
 

@@ -2,11 +2,16 @@ function putVariable() {
     const new_var = document.getElementById('new_variable');
     const new_val = document.getElementById('new_value');
 
-    webviewApi.postMessage({
-        name: 'PUT',
-        key: new_var.value,
-        value: new_val.value
-    })
+    if (new_var.value.indexOf(' ') !== -1){
+        document.getElementById('errorMsg').style.visibility = "visible";
+    } else {{
+        webviewApi.postMessage({
+            name: 'PUT',
+            key: new_var.value,
+            value: new_val.value
+        })
+    }}
+
 }
 
 function deleteVariables() {

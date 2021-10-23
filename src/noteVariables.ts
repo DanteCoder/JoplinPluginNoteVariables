@@ -101,11 +101,20 @@ export namespace noteVariables {
                     <form id="createVar" name="createVar" action="javascript:;" onsubmit="putVariable()">
                         <div>
                             <table>
-                                <tr>
-                                    <td><input type="text" id="new_variable" name="new_variable" placeholder="New variable"></td>
-                                    <td><input type="text" id="new_value" name="new_value" placeholder="Value"></td>
-                                    <td><input type="submit" id="new_var_button" value="Add variable"></td>
+                                <tr><td>
+                                    <input type="text" id="new_variable" name="new_variable" placeholder="New variable">
                                 </tr>
+                                <tr><td>
+                                    <input type="text" id="new_value" name="new_value" placeholder="Value">
+                                <td/></tr>
+                                <tr><td>
+                                    <input type="button" value="Add/Update variable" id="new_var_button" onClick="putVariable()">
+                                <td/></tr>
+                                <tr><td>
+                                    <p id="errorMsg" style="visibility: hidden">
+                                        Variables must not contain spaces
+                                    <p/>
+                                <td/></tr>
                             </table>
                         </div>
                     </form>
