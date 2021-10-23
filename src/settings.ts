@@ -8,7 +8,6 @@ export namespace settings {
             label: "Note Variables",
         });
 
-
         await joplin.settings.registerSettings({
             'variables': {
                 value: '{"a":"somestring","x":42,"c":false}',
@@ -18,11 +17,5 @@ export namespace settings {
                 label: 'Variables'
             }
         })
-
-
-
-
     }
-
-
 }
