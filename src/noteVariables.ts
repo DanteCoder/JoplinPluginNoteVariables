@@ -1,6 +1,6 @@
 import joplin from "api";
 import { settings } from "./settings";
-import { ToolbarButtonLocation } from "api/types";
+import { ToolbarButtonLocation, ContentScriptType } from "api/types";
 
 export namespace noteVariables {
 
@@ -37,14 +37,9 @@ export namespace noteVariables {
         await settings.register();
 
         variables = JSON.parse(await joplin.settings.value('variables'));
+        localStorage.setItem('noteVariables', JSON.stringify(variables));
 
         await updateNoteVariablesPanel();
-
-        /* joplin.settings.onChange(async (event: any) => {
-            if (event.keys.indexOf('variables') !== -1){
-                variables = JSON.parse(await joplin.settings.value('variables'));
-            }
-        }) */
 
         await joplin.commands.register({
             name: 'togglePanel',
@@ -64,8 +59,18 @@ export namespace noteVariables {
 
         await joplin.views.toolbarButtons.create('variablesButton', 'togglePanel', ToolbarButtonLocation.EditorToolbar);
 
+
+        await joplin.contentScripts.register(
+            ContentScriptType.MarkdownItPlugin,
+            'markdown',
+            './markdownItPlugin.js'
+        )
+
         async function updateVariablesSetting() {
-            await joplin.settings.setValue('variables', JSON.stringify(variables));
+            const stringy_vars = JSON.stringify(variables);
+            await joplin.settings.setValue('variables', stringy_vars);
+            localStorage.setItem('noteVariables', stringy_vars);
+            localStorage.setItem('pluginNoteVariablesUpdated', 'true');
         }
 
         async function updateNoteVariablesPanel() {
