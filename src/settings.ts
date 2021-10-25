@@ -15,6 +15,15 @@ export namespace settings {
                 section: 'noteVariablesSection',
                 public: false,
                 label: 'Variables'
+            },
+
+            'variablePrefixSufix': {
+                value: '%',
+                type: SettingItemType.String,
+                section: 'noteVariablesSection',
+                public: true,
+                label: 'Variable prefix/suffix',
+                description: 'If the prefix/suffix is "%", you will need to type %NameOfYourVar% to use it on your notes'
             }
         })
     }
