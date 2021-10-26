@@ -90,6 +90,20 @@ export namespace noteVariables {
             last_note_id = note_id;
         })
 
+        await joplin.workspace.onSyncComplete(async () => {
+            console.log('Sync finished, pulling variables from variables note')
+            try {
+                const body = await getVariablesNoteBody();
+                console.log('body:');
+                console.log(body);
+                variables = JSON.parse(body);
+                vars2localstrg();
+                await updateVariablesSetting();
+            } catch (e) {
+                console.log(e);
+            }
+        })
+
         //Get the variables from the setting value and set it to localStorage
         const stringy_vars = await joplin.settings.value('variables');
         variables = JSON.parse(stringy_vars);
@@ -111,6 +125,7 @@ export namespace noteVariables {
 			}
 		]);
 
+        // Pull variables from variables note or create if doesn't exist
         await updateVariablesNote(false);
 
         //Create the plugin panel
