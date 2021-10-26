@@ -10,7 +10,7 @@ export namespace settings {
 
         await joplin.settings.registerSettings({
             'variables': {
-                value: '{}',
+                value: '{vars:{}, config:{}}',
                 type: SettingItemType.String,
                 section: 'noteVariablesSection',
                 public: false,
