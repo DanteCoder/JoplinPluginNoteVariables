@@ -1,7 +1,5 @@
-let variables = <object>{};
-let prefix_sufix = <string>'';
-updateVariables();
-updateSettings();
+let noteVariables = <any>{vars:{}, config:{prefix_suffix:'%'}};
+updateNoteVars();
 
 export default function (context) {
 	return {
@@ -15,23 +13,21 @@ export default function (context) {
 
 				const text = <string>token.content;
 
-				if (text.indexOf(prefix_sufix) === -1) return defaultRender(tokens, idx, options, env, self);
-
-				if (localStorage.getItem('pluginNoteVariablesUpdated') === 'true') {
-					localStorage.setItem('pluginNoteVariablesUpdated', 'false');
-					updateVariables();
-				}
+				console.log(`settings changed?: ${localStorage.getItem('pluginNoteSettingsChanged')}`)
 
 				if (localStorage.getItem('pluginNoteSettingsChanged') === 'true') {
 					localStorage.setItem('pluginNoteSettingsChanged', 'false');
-					updateSettings();
+					updateNoteVars();
+					console.log(noteVariables);
 				}
 
-				const words = text.split(prefix_sufix);
+				if (text.indexOf(noteVariables.config.prefix_suffix) === -1) return defaultRender(tokens, idx, options, env, self);
+
+				const words = text.split(noteVariables.config.prefix_suffix);
 
 				const valid_vars = [];
 				for (let i = 0; i < words.length; i++) {
-					if (Object.keys(variables).indexOf(words[i]) !== -1) {
+					if (Object.keys(noteVariables.vars).indexOf(words[i]) !== -1) {
 						valid_vars.push(i);
 					}
 				}
@@ -42,14 +38,14 @@ export default function (context) {
 				for (let i = 0; i < words.length; i++) {
 
 					if (valid_vars.indexOf(i - 1) === -1 && valid_vars.indexOf(i) !== -1 && valid_vars.indexOf(i + 1) === -1) {
-						new_text += variables[words[valid_vars[valid_vars.indexOf(i)]]];
+						new_text += noteVariables.vars[words[valid_vars[valid_vars.indexOf(i)]]];
 						continue;
 					}
 
 					new_text += words[i];
 
 					if (valid_vars.indexOf(i + 1) === -1 && i < words.length - 1) {
-						new_text += prefix_sufix;
+						new_text += noteVariables.config.prefix_suffix;
 						continue;
 					}
 				}
@@ -59,11 +55,8 @@ export default function (context) {
 	}
 }
 
-function updateVariables() {
-	variables = JSON.parse(localStorage.getItem('noteVariables'));
-}
-
-function updateSettings() {
-	prefix_sufix = localStorage.getItem('variablePrefixSufix');
-	console.log(`new prefix: ${prefix_sufix}`);
+function updateNoteVars() {
+	const str_json = localStorage.getItem('noteVariables');
+	console.log(str_json);
+	noteVariables = JSON.parse(str_json);
 }

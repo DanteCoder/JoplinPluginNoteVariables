@@ -20,27 +20,32 @@ export namespace noteVariables {
 
         joplin.settings.onChange(async (event) => {
             if (event.keys.indexOf('variablePrefixSufix') !== -1) {
-                if (please_dont_recurse){
-                    //When the setting change comes from the variables note do nothing
-                    console.log('I didnt do anything');
-                    please_dont_recurse = false;
-                } else {
-                    //When the setting change comes the setting menu, update the variables setting
-                    prefix_suffix = await joplin.settings.value('variablePrefixSufix');
-                    variables.config.prefix_suffix = prefix_suffix;
-                    updateVariablesSetting();
-                    console.log('I updated the variables setting');
-                }
+                const setting_value = await joplin.settings.value('variablePrefixSufix');
+                const note_value = variables.config.prefix_suffix;
 
+                if (setting_value !== note_value){
+                    variables.config.prefix_suffix = setting_value;
+                    updateVariablesSetting();
+                    console.log('1 I updated the variables setting');
+                } else {
+                    console.log('1 I didnt do anything');
+                }
             }
 
             if (event.keys.indexOf('variables') !== -1) {
                 console.log('The variables setting was updated');
-                localStorage.setItem('variables', variables);
+                vars2localstrg();
                 localStorage.setItem('pluginNoteSettingsChanged', 'true');
                 
-                await joplin.settings.setValue('variablePrefixSufix', variables.config.prefix_suffix);
-                please_dont_recurse = true;
+                const setting_value = await joplin.settings.value('variablePrefixSufix');
+                const note_value = variables.config.prefix_suffix;
+
+                if (setting_value !== note_value){
+                    await joplin.settings.setValue('variablePrefixSufix', note_value);
+                    console.log('2 I updated the variablePrefixSufix setting');
+                } else {
+                    console.log('2 I didnt do anything');
+                }
 
                 updateVariablesNote(true);
             }
@@ -51,10 +56,6 @@ export namespace noteVariables {
         const stringy_vars = await joplin.settings.value('variables');
         variables = JSON.parse(stringy_vars);
         localStorage.setItem('noteVariables', stringy_vars);
-
-        prefix_suffix = await joplin.settings.value('variablePrefixSufix');
-        localStorage.setItem('variablePrefixSufix', prefix_suffix);
-
         
         // Create a dialog to handle bad variables note
 		handle_bad_vars_note = await dialogs.create('badVars');
@@ -122,6 +123,11 @@ export namespace noteVariables {
     async function updateVariablesSetting() {
         const stringy_vars = JSON.stringify(variables);
         await joplin.settings.setValue('variables', stringy_vars);
+    }
+
+    function vars2localstrg(){
+        const stringy_vars = JSON.stringify(variables);
+        localStorage.setItem('noteVariables', stringy_vars);
     }
 
     async function updateNoteVariablesPanel() {
