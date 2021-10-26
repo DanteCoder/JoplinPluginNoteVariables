@@ -13,12 +13,9 @@ export default function (context) {
 
 				const text = <string>token.content;
 
-				console.log(`settings changed?: ${localStorage.getItem('pluginNoteSettingsChanged')}`)
-
 				if (localStorage.getItem('pluginNoteSettingsChanged') === 'true') {
 					localStorage.setItem('pluginNoteSettingsChanged', 'false');
 					updateNoteVars();
-					console.log(noteVariables);
 				}
 
 				if (text.indexOf(noteVariables.config.prefix_suffix) === -1) return defaultRender(tokens, idx, options, env, self);
@@ -57,6 +54,5 @@ export default function (context) {
 
 function updateNoteVars() {
 	const str_json = localStorage.getItem('noteVariables');
-	console.log(str_json);
 	noteVariables = JSON.parse(str_json);
 }

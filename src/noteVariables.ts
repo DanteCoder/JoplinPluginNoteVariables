@@ -4,14 +4,13 @@ import { ToolbarButtonLocation, ContentScriptType } from "api/types";
 
 export namespace noteVariables {
 
+    let variablesNoteId = null;
     let variables = null;
-    let prefix_suffix = null;
     let pluginPanel = null;
     let is_panel_shown = false;
     const panels = joplin.views.panels;
     const dialogs = joplin.views.dialogs;
     let handle_bad_vars_note = null;
-    let please_dont_recurse = false;
 
     export async function init() {
         console.log('Note Variables plugin started!');
@@ -26,14 +25,10 @@ export namespace noteVariables {
                 if (setting_value !== note_value){
                     variables.config.prefix_suffix = setting_value;
                     updateVariablesSetting();
-                    console.log('1 I updated the variables setting');
-                } else {
-                    console.log('1 I didnt do anything');
                 }
             }
 
             if (event.keys.indexOf('variables') !== -1) {
-                console.log('The variables setting was updated');
                 vars2localstrg();
                 localStorage.setItem('pluginNoteSettingsChanged', 'true');
                 
@@ -42,15 +37,31 @@ export namespace noteVariables {
 
                 if (setting_value !== note_value){
                     await joplin.settings.setValue('variablePrefixSufix', note_value);
-                    console.log('2 I updated the variablePrefixSufix setting');
-                } else {
-                    console.log('2 I didnt do anything');
                 }
 
                 updateVariablesNote(true);
             }
             
         })
+
+        joplin.workspace.onNoteChange(async (event) => {
+            if (event.id === variablesNoteId && event.event === 2){
+                let variables = null;
+                const variablesNote = await joplin.data.get(['notes', variablesNoteId], {fields: ['body']});
+                const body = variablesNote.body;
+                try{
+                    variables = JSON.parse(body);
+                    updateVariablesSetting();
+                } catch (e) {
+                    if (e.name === 'SyntaxError'){
+                        console.log('Syntax error on variables note:');
+                        console.log(e.message);
+                    }
+                }
+            }
+        })
+
+
 
         //Get the variables from the setting value and set it to localStorage
         const stringy_vars = await joplin.settings.value('variables');
@@ -181,15 +192,16 @@ export namespace noteVariables {
     }
 
     async function updateVariablesNote(push: boolean) {
-        const result = await joplin.data.get(['search'], {query:`title:%NoteVariables%`, field:['title'] })
-
+        const result = await joplin.data.get(['search'], {query:`title:%NoteVariables%`, field:['title'] });
+        
         // If there is already a note named "%NoteVariables%" it will pull/push variables from it
         if (result.items.length !== 0){
-            const variablesNote = await joplin.data.get(['notes', result.items[0].id], {fields: ['id', 'body']})
+            variablesNoteId = result.items[0].id;
+            const variablesNote = await joplin.data.get(['notes', variablesNoteId], {fields: ['id', 'body']});
             
             if (push){
                 await joplin.data.put(['notes', variablesNote.id], null, {body: JSON.stringify(variables, null, '\t')});
-                console.log('1 pushed local variables into variables note');
+                console.log('pushed local variables into variables note');
             } else {
     
                 // Try to parse variables from the note
@@ -216,7 +228,7 @@ export namespace noteVariables {
                 } else {
                     const result = await dialogs.open(handle_bad_vars_note);
                     if (result.id === 'Overwrite'){
-                        console.log('2 pushed local variables in to variables note');
+                        console.log('pushed local variables in to variables note');
                         await joplin.data.put(['notes', variablesNote.id], null, {body: JSON.stringify(variables, null, '\t')});
                     }
                 }
