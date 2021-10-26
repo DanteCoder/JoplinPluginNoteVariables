@@ -4,7 +4,9 @@ import { ToolbarButtonLocation, ContentScriptType } from "api/types";
 
 export namespace noteVariables {
 
+    let last_note_id = null;
     let variablesNoteId = null;
+    let variablesNoteValid = true;
     let variables = null;
     let pluginPanel = null;
     let is_panel_shown = false;
@@ -17,7 +19,7 @@ export namespace noteVariables {
 
         await settings.register();
 
-        joplin.settings.onChange(async (event) => {
+        await joplin.settings.onChange(async (event) => {
             if (event.keys.indexOf('variablePrefixSufix') !== -1) {
                 const setting_value = await joplin.settings.value('variablePrefixSufix');
                 const note_value = variables.config.prefix_suffix;
@@ -30,7 +32,6 @@ export namespace noteVariables {
 
             if (event.keys.indexOf('variables') !== -1) {
                 vars2localstrg();
-                localStorage.setItem('pluginNoteSettingsChanged', 'true');
                 
                 const setting_value = await joplin.settings.value('variablePrefixSufix');
                 const note_value = variables.config.prefix_suffix;
@@ -44,24 +45,50 @@ export namespace noteVariables {
             
         })
 
-        joplin.workspace.onNoteChange(async (event) => {
+        await joplin.workspace.onNoteChange(async (event) => {
             if (event.id === variablesNoteId && event.event === 2){
-                let variables = null;
-                const variablesNote = await joplin.data.get(['notes', variablesNoteId], {fields: ['body']});
-                const body = variablesNote.body;
+                const body = await getVariablesNoteBody();
                 try{
                     variables = JSON.parse(body);
-                    updateVariablesSetting();
+                    variablesNoteValid = true;
                 } catch (e) {
                     if (e.name === 'SyntaxError'){
                         console.log('Syntax error on variables note:');
                         console.log(e.message);
                     }
+                    variablesNoteValid = false;
                 }
+                console.log(`on note change is note valid: ${variablesNoteValid}`)
             }
         })
 
+        await joplin.workspace.onNoteSelectionChange(async () => {
+            const note_id = (await joplin.workspace.selectedNote()).id;
+            console.log(`note id: ${note_id}`);
 
+            console.log(`is the note valid: ${variablesNoteValid}`);
+
+            if (last_note_id === variablesNoteId && note_id !== variablesNoteId){
+
+                if (variablesNoteValid){
+                    console.log('update settings on note change')
+                    const body = await getVariablesNoteBody();
+                    variables = JSON.parse(body);
+                    vars2localstrg();
+                    await updateVariablesSetting();
+                }else{
+                    const result = await dialogs.open(handle_bad_vars_note);
+                    if (result.id === 'Overwrite'){
+                        await joplin.data.put(['notes', variablesNoteId], null, {body: JSON.stringify(variables, null, '\t')});
+                        variablesNoteValid = true;
+                        console.log('pushed local variables into variables note');
+                        console.log(`note change, is note valid: ${variablesNoteValid}`);
+                    }
+                }
+            }
+
+            last_note_id = note_id;
+        })
 
         //Get the variables from the setting value and set it to localStorage
         const stringy_vars = await joplin.settings.value('variables');
@@ -72,7 +99,7 @@ export namespace noteVariables {
 		handle_bad_vars_note = await dialogs.create('badVars');
 		await dialogs.setHtml(handle_bad_vars_note, `
         <div style="text-align:justify;">
-            <p>The plugin couldn't parse the variables note.</p>
+            <p>There is a SyntaxError in the %NoteVariables% note</p>
             <p>Do you want to overwrite the note with the local variables or do nothing?</p>
         </div>`);
         await dialogs.setButtons(handle_bad_vars_note, [
@@ -139,6 +166,13 @@ export namespace noteVariables {
     function vars2localstrg(){
         const stringy_vars = JSON.stringify(variables);
         localStorage.setItem('noteVariables', stringy_vars);
+        localStorage.setItem('pluginNoteSettingsChanged', 'true');
+    }
+
+    async function getVariablesNoteBody() {
+        const variablesNote = await joplin.data.get(['notes', variablesNoteId], {fields: ['body']});
+        const body = variablesNote.body;
+        return body;
     }
 
     async function updateNoteVariablesPanel() {
@@ -202,6 +236,7 @@ export namespace noteVariables {
             if (push){
                 await joplin.data.put(['notes', variablesNote.id], null, {body: JSON.stringify(variables, null, '\t')});
                 console.log('pushed local variables into variables note');
+                variablesNoteValid = true;
             } else {
     
                 // Try to parse variables from the note
@@ -214,7 +249,10 @@ export namespace noteVariables {
                     if (keys.indexOf('vars') === -1 || keys.indexOf('config') === -1){
                         throw 'The variables note doesn\'t have the "vars" and "config" keys' 
                     }
+                    variablesNoteValid = true;
+                    console.log("yes you got here");
                 }catch (e){
+                    variablesNoteValid = false;
                     console.log(e);
                 }
     
@@ -228,12 +266,12 @@ export namespace noteVariables {
                 } else {
                     const result = await dialogs.open(handle_bad_vars_note);
                     if (result.id === 'Overwrite'){
-                        console.log('pushed local variables in to variables note');
                         await joplin.data.put(['notes', variablesNote.id], null, {body: JSON.stringify(variables, null, '\t')});
+                        console.log('pushed local variables into variables note');
+                        variablesNoteValid = true;
                     }
                 }
             }
-
         // If there is no note named "%NoteVariables%", it will create one and push the variables locally stored
         } else {
             await joplin.data.post(['notes'], null, {
@@ -241,6 +279,9 @@ export namespace noteVariables {
                 title: '%NoteVariables%'
             })
             console.log('created new variables note and pushed local variables')
+            variablesNoteValid = true; 
         }
+
+        console.log(`update note, is note valid: ${variablesNoteValid}`);
     }
 }
