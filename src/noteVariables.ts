@@ -153,13 +153,47 @@ export namespace noteVariables {
 
     //This function syncs the %NoteVariables% with variables and localstorage['noteVariables']
     async function syncData(sync_type:string) {
+        console.log('sync started');
+
+        // Get the lsVariables
+        let lsVariables = localStorage.getItem('lsVariables');
+        if (lsVariables === null){
+            lsVariables = note_template;
+        } else {
+            try {
+                lsVariables = JSON.parse(lsVariables);
+                lsVariables = checkVarsIntegrity(lsVariables);
+
+            } catch (e) {
+                console.log('error parsing lsVariables')
+                console.log(e);
+                lsVariables = note_template;
+            }
+        }
+
+        console.log('lsVariables:');
+        console.log(lsVariables);
 
         const noteIntegrity = await checkNoteIntegrity();
 
+        console.log('integrity check finished');
+        console.log(noteIntegrity);
+
         if (!noteIntegrity.integrity){
-            //Ask the user to replace the note with local variables or do nothing
             console.log('The note does not have integrity')
-            return;
+
+            if (noteIntegrity.error.name === 'SyntaxError'){
+                console.log('SyntaxError');
+            }
+
+            const result = await dialogs.open(handle_bad_vars_note);
+
+            if (result.id === 'Overwrite'){
+                await joplin.data.put(['notes', noteIntegrity.noteId], null, {body: JSON.stringify(lsVariables, null, '\t')});
+            }else{
+                return;
+            }
+
         }
 
         const note = await joplin.data.get(['notes', noteIntegrity.noteId], {fields: ['id', 'body']});
@@ -167,6 +201,8 @@ export namespace noteVariables {
         if (sync_type === 'two_way'){
             const noteVariables = JSON.parse(note.body);
             
+            console.log(noteVariables);
+
             const note_vars_keys = Object.keys(noteVariables.vars);
             for (let key of note_vars_keys){
                 // If the variable already exists --pull-- only if it's more recent
@@ -195,8 +231,9 @@ export namespace noteVariables {
         }
 
         localStorage.setItem('localstorageVariables', JSON.stringify(runtimeVariables));
-        localStorage.setItem('noteVariablesFence', await joplin.settings.value('fence'));
         localStorage.setItem('pluginNoteVariablesUpdate', 'true');
+
+        console.log('sync finished')
     }
 
     // Checks if the note exists, and the integrity of the note
@@ -229,59 +266,66 @@ export namespace noteVariables {
         } 
 
         // Run the check normally and try to fix integrity
-        console.log('runing integrity check');
+        console.log('running integrity check');
         let body = null;
         try {
             const note = await joplin.data.get(['notes', noteId], {fields: ['id', 'body']});
             body = note.body;
 
             let parsed_json = JSON.parse(body);
-            const keys = Object.keys(parsed_json);
 
-            if (keys.indexOf('vars') === -1){
-                parsed_json.vars = {};
-
-                for (const key of keys){
-                    parsed_json.vars[key] = parsed_json[key];
-                    delete parsed_json[key];
-                }
-            }
-
-            const var_keys = Object.keys(parsed_json.vars);
-            if (var_keys.length > 0){
-                // Check if each var has value and updated property
-                for (const key of var_keys){
-
-                    if (typeof parsed_json.vars[key] !== 'object'){
-                        const var_value = parsed_json.vars[key];
-                        delete parsed_json.vars[key];
-                        parsed_json.vars[key] = {};
-
-                        parsed_json.vars[key].value = var_value;
-                        parsed_json.vars[key].updated = Date.now();
-
-                        continue;
-                    }
-                    
-                    if (parsed_json.vars[key].indexOf('value') === -1){
-                        const var_value = parsed_json.vars[key];
-                        delete parsed_json.vars[key];
-                        parsed_json.vars[key] = {};
-                        parsed_json.vars[key].value = var_value;
-                    }
-
-                    if (parsed_json.vars[key].indexOf('updated') === -1){
-                        parsed_json.vars[key].updated = Date.now();
-                    }
-                }
-            }
+            const good_json = checkVarsIntegrity(parsed_json);
 
             // Save changes to note
-            await joplin.data.put(['notes', noteId], null, {body: JSON.stringify(parsed_json, null, '\t')});
+            await joplin.data.put(['notes', noteId], null, {body: JSON.stringify(good_json, null, '\t')});
 
             return {noteId: noteId, integrity:true, error: null};
         } catch (e) {
-            return {noteId: noteId, integrity:true, error: e};
+            return {noteId: noteId, integrity:false, error: e};
         }
+    }
+
+    function checkVarsIntegrity(vars_object: any){
+        const keys = Object.keys(vars_object);
+
+        if (keys.indexOf('vars') === -1){
+            vars_object.vars = {};
+
+            for (const key of keys){
+                vars_object.vars[key] = vars_object[key];
+                delete vars_object[key];
+            }
+        }
+
+        const var_keys = Object.keys(vars_object.vars);
+        if (var_keys.length > 0){
+            // Check if each var has value and updated property
+            for (const key of var_keys){
+
+                if (typeof vars_object.vars[key] !== 'object'){
+                    const var_value = vars_object.vars[key];
+                    delete vars_object.vars[key];
+                    vars_object.vars[key] = {};
+
+                    vars_object.vars[key].value = var_value;
+                    vars_object.vars[key].updated = Date.now();
+
+                    continue;
+                }
+                
+                if (vars_object.vars[key]['value'] === null){
+                    const var_value = vars_object.vars[key];
+                    delete vars_object.vars[key];
+                    vars_object.vars[key] = {};
+                    vars_object.vars[key].value = var_value;
+                }
+
+                if (vars_object.vars[key]['updated'] === null){
+                    vars_object.vars[key].updated = Date.now();
+                }
+            }
+        }
+
+        return vars_object;
     }
 }

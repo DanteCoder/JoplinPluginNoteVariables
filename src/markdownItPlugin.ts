@@ -54,7 +54,7 @@ export default function (context) {
 }
 
 function syncWithPlugin() {
-	const str_json = localStorage.getItem('localstorageVariables');
+	const str_json = localStorage.getItem('lsVariables');
 	noteVariables = JSON.parse(str_json);
 	fence = localStorage.getItem('noteVariablesFence');
 }
