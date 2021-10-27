@@ -8,6 +8,8 @@ export namespace noteVariables {
         vars: {}
     }
 
+    let noteVarsId = null;
+    let last_note_id = null;
     let runtimeVariables = note_template;
     let sync_mode = null;
     let pluginPanel = null;
@@ -31,7 +33,13 @@ export namespace noteVariables {
         })
 
         await joplin.workspace.onNoteSelectionChange(async () => {
-            //await syncData(sync_mode)
+            const current_note = await joplin.workspace.selectedNote();
+
+            if (current_note.id !== noteVarsId && last_note_id === noteVarsId){
+                await syncData(sync_mode);
+            }
+
+            last_note_id = current_note.id;
         })
 
         await joplin.workspace.onSyncComplete(async () => {
@@ -55,7 +63,7 @@ export namespace noteVariables {
 		]);
 
         // Pull variables from variables note or create if doesn't exist
-        await syncData(sync_mode);
+        //await syncData(sync_mode);
 
         //Create the plugin panel
         pluginPanel = await panels.create('panel_1');
@@ -153,7 +161,7 @@ export namespace noteVariables {
 
     //This function syncs the %NoteVariables% with variables and localstorage['noteVariables']
     async function syncData(sync_type:string) {
-        console.log('sync started');
+        console.log('----sync started----');
 
         // Get the lsVariables
         let lsVariables = localStorage.getItem('lsVariables');
@@ -163,16 +171,14 @@ export namespace noteVariables {
             try {
                 lsVariables = JSON.parse(lsVariables);
                 lsVariables = checkVarsIntegrity(lsVariables);
-
+                
             } catch (e) {
                 console.log('error parsing lsVariables')
                 console.log(e);
                 lsVariables = note_template;
             }
         }
-
-        console.log('lsVariables:');
-        console.log(lsVariables);
+        runtimeVariables = lsVariables;
 
         const noteIntegrity = await checkNoteIntegrity();
 
@@ -199,41 +205,48 @@ export namespace noteVariables {
         const note = await joplin.data.get(['notes', noteIntegrity.noteId], {fields: ['id', 'body']});
 
         if (sync_type === 'two_way'){
+            console.log('two_way syncing');
             const noteVariables = JSON.parse(note.body);
             
             console.log(noteVariables);
 
             const note_vars_keys = Object.keys(noteVariables.vars);
+            console.log('pulling variables from note');
             for (let key of note_vars_keys){
                 // If the variable already exists --pull-- only if it's more recent
-                if (runtimeVariables.vars[key] !== null){
+                if (typeof runtimeVariables.vars[key] !== 'undefined'){
                     if (noteVariables.vars[key].updated > runtimeVariables.vars[key].updated){
                         runtimeVariables.vars[key] = noteVariables.vars[key];
+                        console.log(`pulled ${key} from note`);
                     }
                 }else{
                     runtimeVariables.vars[key] = noteVariables.vars[key];
+                    console.log(`pulled ${key} from note`);
                 }
             }
 
+            console.log('pushing variables to note');
             const local_vars_keys = Object.keys(runtimeVariables.vars);
             for (let key of local_vars_keys){
                 // If the variable already exists --push-- only if it's more recent
-                if (noteVariables.vars[key] !== null){
+                if (typeof noteVariables.vars[key] !== 'undefined'){
                     if (runtimeVariables.vars[key].updated > noteVariables.vars[key].updated){
                         noteVariables.vars[key] = runtimeVariables.vars[key];
+                        console.log(`pushed ${key} to note`);
                     }
                 }else{
                     noteVariables.vars[key] = runtimeVariables.vars[key];
+                    console.log(`pushed ${key} to note`);
                 }
             }
 
             await joplin.data.put(['notes', note.id], null, {body: JSON.stringify(runtimeVariables, null, '\t')});
         }
 
-        localStorage.setItem('localstorageVariables', JSON.stringify(runtimeVariables));
+        localStorage.setItem('lsVariables', JSON.stringify(runtimeVariables));
         localStorage.setItem('pluginNoteVariablesUpdate', 'true');
 
-        console.log('sync finished')
+        console.log('----sync finished----')
     }
 
     // Checks if the note exists, and the integrity of the note
@@ -263,7 +276,8 @@ export namespace noteVariables {
             for (let i = 1; i < result.items.length; i++){
                 joplin.data.put(['notes', result.items[i].id], null, {title: '%NoteVariables% UNUSED'});
             }
-        } 
+        }
+        noteVarsId = noteId;
 
         // Run the check normally and try to fix integrity
         console.log('running integrity check');
