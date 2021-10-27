@@ -9,21 +9,26 @@ export namespace settings {
         });
 
         await joplin.settings.registerSettings({
-            'variables': {
-                value: '{vars:{}, config:{}}',
+            'syncMode': {
+                value: 'two_way',
                 type: SettingItemType.String,
                 section: 'noteVariablesSection',
-                public: false,
-                label: 'Variables'
+                public: true,
+                label: 'Sync mode',
+                isEnum: true,
+                description: 'Two way: compares local and cloud variables and updates the lastest changes.',
+                options: {
+                    'two_way':'Two way'
+                }
             },
 
-            'variablePrefixSufix': {
+            'fence': {
                 value: '%',
                 type: SettingItemType.String,
                 section: 'noteVariablesSection',
                 public: true,
-                label: 'Variable prefix/suffix',
-                description: 'If the prefix/suffix is "%", you will need to type %NameOfYourVar% to use it on your notes'
+                label: 'Variable fence',
+                description: 'If the fence is "%", you will need to type %NameOfYourVar% to use it on your notes'
             }
         })
     }

@@ -1,5 +1,6 @@
-let noteVariables = <any>{vars:{}, config:{prefix_suffix:'%'}};
-updateNoteVars();
+let noteVariables = <any>{vars:{}};
+let fence = '%'
+syncWithPlugin();
 
 export default function (context) {
 	return {
@@ -13,14 +14,14 @@ export default function (context) {
 
 				const text = <string>token.content;
 
-				if (localStorage.getItem('pluginNoteSettingsChanged') === 'true') {
-					localStorage.setItem('pluginNoteSettingsChanged', 'false');
-					updateNoteVars();
+				if (localStorage.getItem('pluginNoteVariablesUpdate') === 'true') {
+					localStorage.setItem('pluginNoteVariablesUpdate', 'false');
+					syncWithPlugin();
 				}
 
-				if (text.indexOf(noteVariables.config.prefix_suffix) === -1) return defaultRender(tokens, idx, options, env, self);
+				if (text.indexOf(fence) === -1) return defaultRender(tokens, idx, options, env, self);
 
-				const words = text.split(noteVariables.config.prefix_suffix);
+				const words = text.split(fence);
 
 				const valid_vars = [];
 				for (let i = 0; i < words.length; i++) {
@@ -42,7 +43,7 @@ export default function (context) {
 					new_text += words[i];
 
 					if (valid_vars.indexOf(i + 1) === -1 && i < words.length - 1) {
-						new_text += noteVariables.config.prefix_suffix;
+						new_text += fence;
 						continue;
 					}
 				}
@@ -52,7 +53,8 @@ export default function (context) {
 	}
 }
 
-function updateNoteVars() {
-	const str_json = localStorage.getItem('noteVariables');
+function syncWithPlugin() {
+	const str_json = localStorage.getItem('localstorageVariables');
 	noteVariables = JSON.parse(str_json);
+	fence = localStorage.getItem('noteVariablesFence');
 }
