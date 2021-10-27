@@ -27,11 +27,11 @@ export namespace noteVariables {
         })
 
         await joplin.workspace.onNoteChange(async (event) => {
-
+            console.log('Note changed.')
         })
 
         await joplin.workspace.onNoteSelectionChange(async () => {
-
+            //await syncData(sync_mode)
         })
 
         await joplin.workspace.onSyncComplete(async () => {
@@ -261,7 +261,7 @@ export namespace noteVariables {
             // Use the first result and rename the other notes.
             noteId = result.items[0].id;
             for (let i = 1; i < result.items.length; i++){
-                joplin.data.put(['notes', result.items[i]], null, {title: '%NoteVariables% UNUSED'});
+                joplin.data.put(['notes', result.items[i].id], null, {title: '%NoteVariables% UNUSED'});
             }
         } 
 
