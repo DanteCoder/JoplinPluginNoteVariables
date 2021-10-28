@@ -17,6 +17,8 @@ export default function (context) {
 				if (localStorage.getItem('pluginNoteVariablesUpdate') === 'true') {
 					localStorage.setItem('pluginNoteVariablesUpdate', 'false');
 					syncWithPlugin();
+					console.log('synced with plugin');
+					console.log(noteVariables);
 				}
 
 				if (text.indexOf(fence) === -1) return defaultRender(tokens, idx, options, env, self);
@@ -36,7 +38,7 @@ export default function (context) {
 				for (let i = 0; i < words.length; i++) {
 
 					if (valid_vars.indexOf(i - 1) === -1 && valid_vars.indexOf(i) !== -1 && valid_vars.indexOf(i + 1) === -1) {
-						new_text += noteVariables.vars[words[valid_vars[valid_vars.indexOf(i)]]];
+						new_text += noteVariables.vars[words[valid_vars[valid_vars.indexOf(i)]]].value;
 						continue;
 					}
 
@@ -54,7 +56,10 @@ export default function (context) {
 }
 
 function syncWithPlugin() {
-	const str_json = localStorage.getItem('lsVariables');
+	const str_json = localStorage.getItem('mdiVariables');
 	noteVariables = JSON.parse(str_json);
 	fence = localStorage.getItem('noteVariablesFence');
+	console.log('updated markdownit with plugin:');
+	console.log(noteVariables);
+	console.log(fence);
 }

@@ -9,6 +9,16 @@ export namespace settings {
         });
 
         await joplin.settings.registerSettings({
+            //Here is where the variables are saved locally
+            'noteVariables': {
+                value: '{"vars":{}}',
+                type: SettingItemType.String,
+                section: 'noteVariablesSection',
+                public: false,
+                label: 'Note Variables',
+                description: 'All the note variables.',
+            },
+            
             'syncMode': {
                 value: 'two_way',
                 type: SettingItemType.String,
@@ -31,5 +41,7 @@ export namespace settings {
                 description: 'If the fence is "%", you will need to type %NameOfYourVar% to use it on your notes'
             }
         })
+
+        localStorage.setItem('noteVariablesFence', await joplin.settings.value('fence'));
     }
 }

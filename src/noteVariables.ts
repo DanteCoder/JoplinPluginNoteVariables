@@ -24,28 +24,6 @@ export namespace noteVariables {
         await settings.register();
         sync_mode = await joplin.settings.value('syncMode')
 
-        await joplin.settings.onChange(async (event) => {
-            
-        })
-
-        await joplin.workspace.onNoteChange(async (event) => {
-            console.log('Note changed.')
-        })
-
-        await joplin.workspace.onNoteSelectionChange(async () => {
-            const current_note = await joplin.workspace.selectedNote();
-
-            if (current_note.id !== noteVarsId && last_note_id === noteVarsId){
-                await syncData(sync_mode);
-            }
-
-            last_note_id = current_note.id;
-        })
-
-        await joplin.workspace.onSyncComplete(async () => {
-
-        })
-        
         // Create a dialog to handle bad variables note
 		handle_bad_vars_note = await dialogs.create('badVars');
 		await dialogs.setHtml(handle_bad_vars_note, `
@@ -62,8 +40,30 @@ export namespace noteVariables {
 			}
 		]);
 
-        // Pull variables from variables note or create if doesn't exist
-        //await syncData(sync_mode);
+        await syncData(sync_mode);
+
+        await joplin.settings.onChange(async (event) => {
+            if (event.keys.indexOf('fence') !== -1){
+                localStorage.setItem('noteVariablesFence', await joplin.settings.value('fence'));
+                localStorage.setItem('pluginNoteVariablesUpdate', 'true');
+            }
+        })
+
+        await joplin.workspace.onNoteSelectionChange(async () => {
+            const current_note = await joplin.workspace.selectedNote();
+
+            if (current_note.id !== noteVarsId && last_note_id === noteVarsId){
+                await syncData(sync_mode);
+            }
+
+            last_note_id = current_note.id;
+        })
+
+        await joplin.workspace.onSyncComplete(async () => {
+            await syncData(sync_mode);
+        })
+        
+        
 
         //Create the plugin panel
         pluginPanel = await panels.create('panel_1');
@@ -163,22 +163,18 @@ export namespace noteVariables {
     async function syncData(sync_type:string) {
         console.log('----sync started----');
 
-        // Get the lsVariables
-        let lsVariables = localStorage.getItem('lsVariables');
-        if (lsVariables === null){
-            lsVariables = note_template;
-        } else {
-            try {
-                lsVariables = JSON.parse(lsVariables);
-                lsVariables = checkVarsIntegrity(lsVariables);
-                
-            } catch (e) {
-                console.log('error parsing lsVariables')
-                console.log(e);
-                lsVariables = note_template;
-            }
+        // Get the locally saved variables
+        let localVariables = await joplin.settings.value('noteVariables');
+        try {
+            localVariables = JSON.parse(localVariables);
+            localVariables = checkVarsIntegrity(localVariables);
+            
+        } catch (e) {
+            console.log('error parsing localVariables')
+            console.log(e);
+            localVariables = note_template;
         }
-        runtimeVariables = lsVariables;
+        runtimeVariables = localVariables;
 
         const noteIntegrity = await checkNoteIntegrity();
 
@@ -195,7 +191,7 @@ export namespace noteVariables {
             const result = await dialogs.open(handle_bad_vars_note);
 
             if (result.id === 'Overwrite'){
-                await joplin.data.put(['notes', noteIntegrity.noteId], null, {body: JSON.stringify(lsVariables, null, '\t')});
+                await joplin.data.put(['notes', noteIntegrity.noteId], null, {body: JSON.stringify(localVariables, null, '\t')});
             }else{
                 return;
             }
@@ -242,8 +238,10 @@ export namespace noteVariables {
 
             await joplin.data.put(['notes', note.id], null, {body: JSON.stringify(runtimeVariables, null, '\t')});
         }
-
-        localStorage.setItem('lsVariables', JSON.stringify(runtimeVariables));
+        
+        const stringified_vars = JSON.stringify(runtimeVariables);
+        await joplin.settings.setValue('noteVariables', stringified_vars);
+        localStorage.setItem('mdiVariables', stringified_vars);
         localStorage.setItem('pluginNoteVariablesUpdate', 'true');
 
         console.log('----sync finished----')
