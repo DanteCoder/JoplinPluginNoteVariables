@@ -53,7 +53,8 @@ export namespace noteVariables {
             const current_note = await joplin.workspace.selectedNote();
 
             if (current_note.id !== noteVarsId && last_note_id === noteVarsId){
-                await syncData(sync_mode);
+                setTimeout(async () => { await syncData(sync_mode)}, 500);
+                
             }
 
             last_note_id = current_note.id;
