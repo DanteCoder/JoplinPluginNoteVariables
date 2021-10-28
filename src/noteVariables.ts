@@ -8,6 +8,7 @@ export namespace noteVariables {
         vars: {}
     }
 
+    const noteVarsName = '%NoteVariables%';
     let noteVarsId = null;
     let last_note_id = null;
     let runtimeVariables = note_template;
@@ -40,8 +41,6 @@ export namespace noteVariables {
 			}
 		]);
 
-        await syncData(sync_mode);
-
         await joplin.settings.onChange(async (event) => {
             if (event.keys.indexOf('fence') !== -1){
                 localStorage.setItem('noteVariablesFence', await joplin.settings.value('fence'));
@@ -49,22 +48,13 @@ export namespace noteVariables {
             }
         })
 
-        await joplin.workspace.onNoteSelectionChange(async () => {
-            const current_note = await joplin.workspace.selectedNote();
-
-            if (current_note.id !== noteVarsId && last_note_id === noteVarsId){
-                setTimeout(async () => { await syncData(sync_mode)}, 500);
-                
-            }
-
-            last_note_id = current_note.id;
+        await joplin.workspace.onSyncStart(async () => {
+            await syncData(sync_mode);
         })
 
         await joplin.workspace.onSyncComplete(async () => {
             await syncData(sync_mode);
         })
-        
-        
 
         //Create the plugin panel
         pluginPanel = await panels.create('panel_1');
@@ -108,6 +98,8 @@ export namespace noteVariables {
             'markdown',
             './markdownItPlugin.js'
         )
+
+        await syncData(sync_mode);
     }
 
     async function updateNoteVariablesPanel() {
@@ -250,7 +242,10 @@ export namespace noteVariables {
 
     // Checks if the note exists, and the integrity of the note
     async function checkNoteIntegrity(){
+        console.log('searching for %NoteVariables%');
         const result = await joplin.data.get(['search'], {query:`title:%NoteVariables%`, field:['title'] });
+        console.log('results:');
+        console.log(result);
 
         let noteId = null;
 
@@ -258,11 +253,13 @@ export namespace noteVariables {
             // Create a new clean note
             await joplin.data.post(['notes'], null, {
                 body: JSON.stringify(note_template, null, '\t'),
-                title: '%NoteVariables%'
+                title: noteVarsName
             })
 
-            const result = await joplin.data.get(['search'], {query:`title:%NoteVariables%`, field:['title'] });
+            const result = await joplin.data.get(['search'], {query:`title:${noteVarsName}`, field:['title'] });
             noteId = result.items[0].id;
+
+            console.log('created a new variables note');
 
             return {noteId: noteId, integrity:true, error: null};
 
@@ -270,10 +267,19 @@ export namespace noteVariables {
             noteId = result.items[0].id;
 
         } else if (result.items.length > 1){
-            // Use the first result and rename the other notes.
-            noteId = result.items[0].id;
-            for (let i = 1; i < result.items.length; i++){
-                joplin.data.put(['notes', result.items[i].id], null, {title: '%NoteVariables% UNUSED'});
+            // Use the first result that match exactly the name and rename the other that also match exactly.
+
+            let found = false;
+            for (const item of result.items){
+                console.log(item);
+                if (item.title === noteVarsName){
+                    if (!found){
+                        noteId = item.id;
+                        found = true;
+                    }else{
+                        joplin.data.put(['notes', item.id], null, {title: `${noteVarsName} UNUSED`});
+                    }
+                }
             }
         }
         noteVarsId = noteId;
