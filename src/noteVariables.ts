@@ -90,8 +90,17 @@ export namespace noteVariables {
                 }
             }
         })
+        await joplin.commands.register({
+            name: 'mirrorNote2Local',
+            label: 'Update variables from the variables note',
+            iconName: 'fas fa-upload',
+            execute: async () => {
+                await syncData('mirror_note_local');
+            }
+        })
 
         await joplin.views.toolbarButtons.create('variablesButton', 'togglePanel', ToolbarButtonLocation.EditorToolbar);
+        await joplin.views.toolbarButtons.create('uploadVarsFromNote', 'mirrorNote2Local', ToolbarButtonLocation.EditorToolbar);
 
         await joplin.contentScripts.register(
             ContentScriptType.MarkdownItPlugin,
@@ -226,6 +235,41 @@ export namespace noteVariables {
                 }else{
                     noteVariables.vars[key] = runtimeVariables.vars[key];
                     console.log(`pushed ${key} to note`);
+                }
+            }
+
+            await joplin.data.put(['notes', note.id], null, {body: JSON.stringify(runtimeVariables, null, '\t')});
+        }
+
+        if (sync_type === 'mirror_note_local'){
+            console.log('mirror_note_local syncing');
+            const noteVariables = JSON.parse(note.body);
+            
+            console.log(noteVariables);
+
+            const note_vars_keys = Object.keys(noteVariables.vars);
+            console.log('pulling variables from note');
+            for (let key of note_vars_keys){
+                // If the variable already exists check if the value is different and update the "update" time
+                if (typeof runtimeVariables.vars[key] !== 'undefined'){
+                    if (runtimeVariables.vars[key].value !== noteVariables.vars[key].value){
+                        runtimeVariables.vars[key] = noteVariables.vars[key];
+                        runtimeVariables.vars[key].updated = Date.now();
+                        console.log(`pulled ${key} from note`);
+                    }
+                }else{
+                    runtimeVariables.vars[key] = noteVariables.vars[key];
+                    console.log(`pulled ${key} from note`);
+                }
+            }
+
+            console.log('deleting local variables');
+            const local_vars_keys = Object.keys(runtimeVariables.vars);
+            for (let key of local_vars_keys){
+                // If the variable is not in noteVariables, delete it
+                if (note_vars_keys.indexOf(key) === -1){
+                    delete runtimeVariables.vars[key];
+                    console.log(`deleted ${key} from local variables`);
                 }
             }
 
