@@ -5,7 +5,8 @@ export namespace settings {
 
     export async function register() {
         await joplin.settings.registerSection('noteVariablesSection', {
-            label: "Note Variables",
+            label: 'Note Variables',
+            iconName: 'fas fa-superscript',
         });
 
         await joplin.settings.registerSettings({
@@ -38,7 +39,7 @@ export namespace settings {
                 section: 'noteVariablesSection',
                 public: true,
                 label: 'Variable fence',
-                description: 'If the fence is "%", you will need to type %NameOfYourVar% to use it on your notes'
+                description: 'If the fence is "%", you will need to type %NameOfYourVar% to use it on your notes. Please note that some characters will not work e.g. "$".'
             }
         })
 
