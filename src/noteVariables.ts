@@ -62,19 +62,29 @@ export namespace noteVariables {
         await panels.setHtml(pluginPanel, 'Loading... :)');
         await panels.addScript(pluginPanel, './webview.js')
 
-        await panels.onMessage(pluginPanel, (message: any) => {
+        await panels.onMessage(pluginPanel, async (message: any) => {
+            console.log('recieved message from panel');
+            console.log(message);
+
             if (message.name === 'PUT') {
-                runtimeVariables[message.key] = message.value;
-                updateNoteVariablesPanel();
+                runtimeVariables.vars[message.key] = message.value;
+                await joplin.settings.setValue('noteVariables', JSON.stringify(runtimeVariables));
+                await syncData('mirror_local_note');
+                await updateNoteVariablesPanel();
             }
 
             if (message.name === 'DELETE') {
-                delete runtimeVariables[message.key];
-                updateNoteVariablesPanel();
+                const keys = message.keys;
+                
+                for (const key of keys){
+                    delete runtimeVariables.vars[key];
+                }
+
+                await joplin.settings.setValue('noteVariables', JSON.stringify(runtimeVariables));
+                await syncData('mirror_local_note');
+                await updateNoteVariablesPanel();
             }
         })
-
-        await updateNoteVariablesPanel();
 
         await joplin.commands.register({
             name: 'togglePanel',
@@ -92,7 +102,7 @@ export namespace noteVariables {
         })
         await joplin.commands.register({
             name: 'mirrorNote2Local',
-            label: 'Update variables from the variables note',
+            label: 'Save variables from note to local',
             iconName: 'fas fa-upload',
             execute: async () => {
                 await syncData('mirror_note_local');
@@ -109,18 +119,22 @@ export namespace noteVariables {
         )
 
         await syncData(sync_mode);
+        await updateNoteVariablesPanel();
     }
 
     async function updateNoteVariablesPanel() {
-        const keys = Object.keys(runtimeVariables).sort();
+        const keys = Object.keys(runtimeVariables.vars).sort();
         const varsHtml = [];
 
+        console.log('constructing panel variables table')
+        console.log(keys)
         for (const key of keys) {
+            console.log(key);
             varsHtml.push(`
             <tr>
                 <td><input type="checkbox" id="${key}" name="${key}" value="1"></td>
                 <td id="var_${key}">${key}</td>
-                <td>${runtimeVariables[key]}</td>
+                <td>${runtimeVariables.vars[key].value}</td>
             <tr>`);
         }
 
@@ -149,11 +163,6 @@ export namespace noteVariables {
                             <td/></tr>
                             <tr><td>
                                 <input type="button" value="Add/Update variable" id="new_var_button" onClick="putVariable()">
-                            <td/></tr>
-                            <tr><td>
-                                <p id="errorMsg" style="visibility: hidden">
-                                    Variables must not contain spaces
-                                <p/>
                             <td/></tr>
                         </table>
                     </div>
@@ -275,11 +284,47 @@ export namespace noteVariables {
 
             await joplin.data.put(['notes', note.id], null, {body: JSON.stringify(runtimeVariables, null, '\t')});
         }
+
+        if (sync_type === 'mirror_local_note'){
+            console.log('mirror_local_note syncing');
+            const noteVariables = JSON.parse(note.body);
+            
+            console.log(runtimeVariables);
+
+            const runtime_vars_keys = Object.keys(runtimeVariables.vars);
+            console.log('pushing variables to note');
+            for (let key of runtime_vars_keys){
+                // If the variable already exists check if the value is different and update the "update" time
+                if (typeof noteVariables.vars[key] !== 'undefined'){
+                    if (noteVariables.vars[key].value !== runtimeVariables.vars[key].value){
+                        noteVariables.vars[key] = runtimeVariables.vars[key];
+                        console.log(`pushed ${key} to note`);
+                    }
+                }else{
+                    noteVariables.vars[key] = runtimeVariables.vars[key];
+                    console.log(`pushed ${key} to note`);
+                }
+            }
+
+            console.log('deleting note variables');
+            const note_vars_keys = Object.keys(noteVariables.vars);
+            for (let key of note_vars_keys){
+                // If the variable is not in runtimeVariables, delete it
+                if (runtime_vars_keys.indexOf(key) === -1){
+                    delete noteVariables.vars[key];
+                    console.log(`deleted ${key} from note`);
+                }
+            }
+
+            await joplin.data.put(['notes', note.id], null, {body: JSON.stringify(noteVariables, null, '\t')});
+        }
         
         const stringified_vars = JSON.stringify(runtimeVariables);
         await joplin.settings.setValue('noteVariables', stringified_vars);
         localStorage.setItem('mdiVariables', stringified_vars);
         localStorage.setItem('pluginNoteVariablesUpdate', 'true');
+
+        await updateNoteVariablesPanel();
 
         console.log('----sync finished----')
     }
@@ -337,7 +382,13 @@ export namespace noteVariables {
 
             let parsed_json = JSON.parse(body);
 
+            console.log('parsed json:');
+            console.log(parsed_json);
+
             const good_json = checkVarsIntegrity(parsed_json);
+
+            console.log('corrected json:');
+            console.log(good_json);
 
             // Save changes to note
             await joplin.data.put(['notes', noteId], null, {body: JSON.stringify(good_json, null, '\t')});
@@ -353,8 +404,9 @@ export namespace noteVariables {
 
         if (keys.indexOf('vars') === -1){
             vars_object.vars = {};
-
-            for (const key of keys){
+        }
+        for (const key of keys){
+            if (key !== 'vars'){
                 vars_object.vars[key] = vars_object[key];
                 delete vars_object[key];
             }
