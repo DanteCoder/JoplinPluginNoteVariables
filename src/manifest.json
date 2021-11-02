@@ -1,6 +1,6 @@
 {
 	"manifest_version": 1,
-	"id": "com.gamalielbarboza.NoteVariables",
+	"id": "com.DanteCoder.NoteVariables",
 	"app_min_version": "2.2",
 	"version": "1.0.0",
 	"name": "Note Variables",
