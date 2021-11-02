@@ -1,4 +1,6 @@
-let variables = updateVariables();
+let noteVariables = <any>{vars:{}};
+let fence = '%'
+syncWithPlugin();
 
 export default function (context) {
 	return {
@@ -12,40 +14,52 @@ export default function (context) {
 
 				const text = <string>token.content;
 
-				if (text.indexOf('@') === -1) return defaultRender(tokens, idx, options, env, self);
-
-				if (localStorage.getItem('pluginNoteVariablesUpdated') === 'true') {
-					localStorage.setItem('pluginNoteVariablesUpdated', 'false');
-					variables = updateVariables();
+				if (localStorage.getItem('pluginNoteVariablesUpdate') === 'true') {
+					localStorage.setItem('pluginNoteVariablesUpdate', 'false');
+					syncWithPlugin();
+					console.log('synced with plugin');
+					console.log(noteVariables);
 				}
 
-				const words = text.split(' ');
-				let new_text = '';
+				if (text.indexOf(fence) === -1) return defaultRender(tokens, idx, options, env, self);
 
-				for (const word of words) {
-					if (word.startsWith('@')) {
-						const var_key = word.slice(1);
-						const var_value = variables[var_key];
+				const words = text.split(fence);
 
-						if (typeof var_value != 'undefined') {
-							new_text += var_value + ' ';
-						} else {
-							new_text += word + ' ';
-						}
-					} else {
-						new_text += word + ' ';
+				const valid_vars = [];
+				for (let i = 0; i < words.length; i++) {
+					if (Object.keys(noteVariables.vars).indexOf(words[i]) !== -1) {
+						valid_vars.push(i);
 					}
 				}
 
-				new_text = new_text.trimEnd();
+				if (valid_vars.length === 0) return text;
 
+				let new_text = '';
+				for (let i = 0; i < words.length; i++) {
+
+					if (valid_vars.indexOf(i - 1) === -1 && valid_vars.indexOf(i) !== -1 && valid_vars.indexOf(i + 1) === -1) {
+						new_text += noteVariables.vars[words[valid_vars[valid_vars.indexOf(i)]]].value;
+						continue;
+					}
+
+					new_text += words[i];
+
+					if (valid_vars.indexOf(i + 1) === -1 && i < words.length - 1) {
+						new_text += fence;
+						continue;
+					}
+				}
 				return new_text;
 			};
 		}
 	}
 }
 
-function updateVariables() {
-	const variables = JSON.parse(localStorage.getItem('noteVariables'));
-	return variables;
+function syncWithPlugin() {
+	const str_json = localStorage.getItem('mdiVariables');
+	noteVariables = JSON.parse(str_json);
+	fence = localStorage.getItem('noteVariablesFence');
+	console.log('updated markdownit with plugin:');
+	console.log(noteVariables);
+	console.log(fence);
 }

@@ -2,29 +2,26 @@ function putVariable() {
     const new_var = document.getElementById('new_variable');
     const new_val = document.getElementById('new_value');
 
-    if (new_var.value.indexOf(' ') !== -1){
-        document.getElementById('errorMsg').style.visibility = "visible";
-    } else {{
-        webviewApi.postMessage({
-            name: 'PUT',
-            key: new_var.value,
-            value: new_val.value
-        })
-    }}
-
+    webviewApi.postMessage({
+        name: 'PUT',
+        key: new_var.value,
+        value: new_val.value,
+        updated: Date('now'),
+    })
 }
 
 function deleteVariables() {
-    const elements = document.getElementsByClassName('varList');
+    const elements = document.getElementsByClassName('varList')[0];
+    const keys = [];
 
-    for (const element of elements[0]) {
+    for (const element of elements) {
         if (element.checked) {
-            const var_key = element.id;
-
-            webviewApi.postMessage({
-                name: 'DELETE',
-                key: var_key,
-            })
+            keys.push(element.id);
         }
     }
+
+    webviewApi.postMessage({
+        name: 'DELETE',
+        keys: keys,
+    })
 }
