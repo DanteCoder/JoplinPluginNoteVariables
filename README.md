@@ -21,6 +21,8 @@ After you defined your variables, you can use them on your notes using the defau
 ## Download
 You can install it directly from Options > Plugins > Search for "Note Variables".
 
+**If you installed a version below 1.0.0, you will have to uninstall it and install version 1.0.0 or greater.**
+
 ## Bugs, feature requests or contributions
 Please report any bugs you find, or any feature request you have on the [GitHub Issues page](https://github.com/DanteCoder/JoplinPluginNoteVariables/issues)
 Feel free to contribute to the plugin making a pull request to the [Dev branch](https://github.com/DanteCoder/JoplinPluginNoteVariables/tree/Dev).
