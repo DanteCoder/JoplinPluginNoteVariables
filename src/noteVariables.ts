@@ -1,6 +1,5 @@
 import joplin from 'api';
-import { ContentScriptType, ToolbarButtonLocation } from 'api/types';
-
+import { ContentScriptType } from 'api/types';
 import { createVariablesNote } from './utils/createVariablesNote';
 import { loadVariablesNotes } from './utils/loadVariablesNotes';
 import { debounce } from './utils/debounce';
@@ -33,12 +32,6 @@ export namespace noteVariables {
         createVariablesNote(note);
       },
     });
-
-    await joplin.views.toolbarButtons.create(
-      'variablesButton',
-      'newVariablesNote',
-      ToolbarButtonLocation.EditorToolbar
-    );
 
     await loadVariablesNotes();
   }
