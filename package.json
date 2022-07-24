@@ -1,6 +1,6 @@
 {
   "name": "joplin-plugin-note-variables",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "scripts": {
     "dist": "webpack --joplin-plugin-config buildMain && webpack --joplin-plugin-config buildExtraScripts && webpack --joplin-plugin-config createArchive",
     "prepare": "npm run dist",
@@ -23,5 +23,8 @@
     "webpack": "^4.43.0",
     "webpack-cli": "^3.3.11",
     "yargs": "^16.2.0"
-  }
+  },
+  "files": [
+    "publish"
+  ]
 }
