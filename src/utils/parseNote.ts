@@ -11,6 +11,7 @@ export const parseNote = (note: any) => {
 
   for (const row of rows.slice(2)) {
     const match = row.match(lineRegExp);
+    if (match[1] === '') continue;
     const variable = match[1].trimEnd();
     const value = match[2].trimEnd();
 
