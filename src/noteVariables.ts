@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { ContentScriptType } from 'api/types';
+import { ContentScriptType, MenuItemLocation } from 'api/types';
 import { createVariablesNote } from './utils/createVariablesNote';
 import { loadVariablesNotes } from './utils/loadVariablesNotes';
 
@@ -26,13 +26,14 @@ export namespace noteVariables {
 
     await joplin.commands.register({
       name: 'newVariablesNote',
-      label: 'Create a new variables note',
+      label: 'Create variables note',
       iconName: 'fas fa-superscript',
       execute: async () => {
-        const note = await joplin.workspace.selectedNote();
-        createVariablesNote(note);
+        const folder = await joplin.workspace.selectedFolder();
+        createVariablesNote(folder.id);
       },
     });
+    await joplin.views.menuItems.create('Create variables vote', 'newVariablesNote', MenuItemLocation.Note);
 
     await loadVariablesNotes();
   }
