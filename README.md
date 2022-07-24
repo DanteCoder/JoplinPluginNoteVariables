@@ -22,6 +22,13 @@ To use the variables in a note you have to write an inline code like `import Var
   <img style="width:100%;" src="https://user-images.githubusercontent.com/90792603/180669121-73cb43c0-8a87-427e-9cb5-a08986f5687c.png" />
 </p>
 
+## Usage notes
+- Every Variables Note must have a different name and without spaces. If two Variable Notes have the same name the plugin will use the first one it finds.
+- Every variable in a Variable Note must have a different name, otherwise just the first of the same name will be used.
+- You can import multiple Note Variables in a single note, but if they have variables with the same name the variables from the rightmost import will take priority.
+- Sometimes after starting Joplin, you have to switch notes to see the variables replaced on the note.
+
+
 ## Download
 You can install it directly from Options > Plugins > Search for "Note Variables".
 
