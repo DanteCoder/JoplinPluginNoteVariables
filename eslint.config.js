@@ -3,7 +3,7 @@ const stylistic = require('@stylistic/eslint-plugin');
 
 module.exports = [
   {
-    ignores: ['dist/', 'publish/', 'node_modules/', 'api/'],
+    ignores: ['dist/', 'publish/', 'node_modules/', 'api/', 'tests/', 'vitest.config.ts'],
   },
   ...tsPlugin.configs['flat/recommended'],
   {

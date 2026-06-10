@@ -184,4 +184,20 @@
   }
 
   document.addEventListener('joplin-noteDidUpdate', run);
+
+  if (typeof window !== 'undefined') {
+    window.__noteVariablesRuntime = {
+      escapeHtml,
+      isInSubstitutionScope,
+      findUnprocessedImportMarkers,
+      fetchVariableGroupsFromPlugin,
+      getImportNamesFromMarker,
+      mergeGroupVariables,
+      renderImportMarkerWithStatus,
+      collectEligibleTextNodes,
+      replaceVariableKeysInTextNodes,
+      applyVariableSubstitutions,
+      processNoteVariables,
+    };
+  }
 })();
