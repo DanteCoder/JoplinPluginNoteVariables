@@ -11,10 +11,11 @@ export const loadVariablesNotes = async () => {
     })
   );
 
-  const variableGroups: any = {};
+  const variableGroups: Record<string, { vars: Record<string, string> }> = {};
 
   notesData.forEach(note => {
     if (variableGroups[note.title] != null) return;
+
     const vars = parseNote(note);
     variableGroups[note.title] = {
       vars,

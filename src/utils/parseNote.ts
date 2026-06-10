@@ -1,17 +1,23 @@
 const globalRegExp = /^\|\s*[^|]*\s*\|\s*[^|]*\s*\|/gm;
 const lineRegExp = /^\|\s*([^|]*)\s*\|\s*([^|]*)\s*\|/;
 
-export const parseNote = (note: any) => {
-  const { body } = note;
-  const rows = (body as string).match(globalRegExp);
+interface NoteBody {
+  body: string;
+}
 
-  const parsedVariables: any = {};
+export const parseNote = (note: NoteBody) => {
+  const { body } = note;
+  const rows = body.match(globalRegExp);
+
+  const parsedVariables: Record<string, string> = {};
 
   if (rows == null) return parsedVariables;
 
   for (const row of rows.slice(2)) {
     const match = row.match(lineRegExp);
-    if (match[1] === '') continue;
+
+    if (match == null || match[1] === '') continue;
+
     const variable = match[1].trimEnd();
     const value = match[2].trimEnd();
 

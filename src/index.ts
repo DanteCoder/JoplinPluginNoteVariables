@@ -1,8 +1,8 @@
 import joplin from 'api';
-import { noteVariables } from './noteVariables';
+import { init } from './noteVariables';
 
 joplin.plugins.register({
   onStart: async function () {
-    noteVariables.init();
+    await init();
   },
 });

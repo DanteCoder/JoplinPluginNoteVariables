@@ -10,7 +10,9 @@ export const createVariablesNote = async (parent_id: string) => {
     0,
     ...allNotes.map(note => {
       const match = note.title.match(/^%Variables([0-9]+)%$/);
+
       if (match == null) return 0;
+
       return parseInt(match[1]);
     })
   );
