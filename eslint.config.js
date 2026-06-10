@@ -11,6 +11,7 @@ module.exports = [
       '@stylistic': stylistic,
     },
     rules: {
+      'no-var': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'padding-line-between-statements': [
         'warn',
