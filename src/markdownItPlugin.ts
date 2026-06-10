@@ -62,9 +62,12 @@ export default function (context: { contentScriptId: string }) {
         const escaped = markdownIt.utils.escapeHtml(JSON.stringify(importNames));
 
         return (
+          `<span style="position: relative;">` +
           `<code class="inline-code note-variables-import" ` +
+          `style="position: absolute; top: 0; left: 0; white-space: nowrap; background: rgba(255, 255, 255, 0.85);" ` +
           `data-content-script-id="${markdownIt.utils.escapeHtml(contentScriptId)}" ` +
-          `data-import-names="${escaped}">import ${markdownIt.utils.escapeHtml(importNames.join(' '))}</code>`
+          `data-import-names="${escaped}">import ${markdownIt.utils.escapeHtml(importNames.join(' '))}</code>` +
+          `</span>`
         );
       };
     },

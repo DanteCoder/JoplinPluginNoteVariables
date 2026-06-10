@@ -76,6 +76,15 @@
   }
 
   function renderImportMarkerWithStatus(marker, importNames, variableGroups) {
+    const allOk = importNames.every(n => variableGroups[n] && variableGroups[n].vars);
+
+    if (allOk) {
+      marker.style.display = 'none';
+      marker.setAttribute('data-nv-done', '1');
+
+      return;
+    }
+
     const variableSpansHtml = importNames
       .map(importName => {
         const hasVariables = !!(variableGroups[importName] && variableGroups[importName].vars);
