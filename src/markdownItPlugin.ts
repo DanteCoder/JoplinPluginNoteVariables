@@ -1,30 +1,70 @@
 import { debounce } from './utils/debounce';
 
-let importedVariables: { [key: string]: string } = null;
+let importedVariables: { [key: string]: string } | null = null;
 let noteVariables: { [note: string]: { vars: { [key: string]: string } } } = {};
 
-export default function (context) {
+interface Token {
+  content: string;
+}
+
+type RenderRule = (
+  tokens: Token[],
+  idx: number,
+  options: unknown,
+  env: unknown,
+  self: { renderToken: (...args: unknown[]) => string }
+) => string;
+
+interface MarkdownItInstance {
+  renderer: {
+    rules: {
+      text?: RenderRule;
+      code_inline?: RenderRule;
+      [key: string]: unknown;
+    };
+  };
+}
+
+export default function (_context: unknown) {
   return {
-    plugin: function (markdownIt, _options) {
+    plugin: function (markdownIt: MarkdownItInstance, _options: unknown) {
       const defaultRender =
         markdownIt.renderer.rules.text ||
-        function (tokens, idx, options, env, self) {
+        function (
+          tokens: Token[],
+          idx: number,
+          options: unknown,
+          env: unknown,
+          self: { renderToken: (...args: unknown[]) => string }
+        ) {
           return self.renderToken(tokens, idx, options, env, self);
         };
 
       const defaultInlineCodeRender =
         markdownIt.renderer.rules.code_inline ||
-        function (tokens, idx, options, env, self) {
+        function (
+          tokens: Token[],
+          idx: number,
+          options: unknown,
+          env: unknown,
+          self: { renderToken: (...args: unknown[]) => string }
+        ) {
           return self.renderToken(tokens, idx, options, env, self);
         };
 
       /**
        * Searchs for Note Variable imports
        */
-      markdownIt.renderer.rules.code_inline = function (tokens, idx, options, env, self) {
+      markdownIt.renderer.rules.code_inline = function (
+        tokens: Token[],
+        idx: number,
+        options: unknown,
+        env: unknown,
+        self: { renderToken: (...args: unknown[]) => string }
+      ) {
         const token = tokens[idx];
 
-        const importMatch = (token.content as string)?.match(/^import((?:\s[^%\s]+)+)$/);
+        const importMatch = token.content?.match(/^import((?:\s[^%\s]+)+)$/);
         const imports = importMatch
           ? importMatch[1]
               .trimStart()
@@ -35,6 +75,7 @@ export default function (context) {
         if (importMatch == null) return defaultInlineCodeRender(tokens, idx, options, env, self);
 
         noteVariables = fetchLocalStoargeVariables();
+
         const importResult = mergeImports(imports);
         importedVariables = importResult.merged;
 
@@ -43,6 +84,7 @@ export default function (context) {
           imports
             .map(value => {
               const successImport = importResult.validImports.includes(value);
+
               return `<span style="color:${successImport ? 'lightgreen' : 'lightcoral'}" > ${value}</span>`;
             })
             .join('') +
@@ -54,14 +96,22 @@ export default function (context) {
       /**
        * Replaces the imported variables into the text
        */
-      markdownIt.renderer.rules.text = function (tokens, idx, options, env, self) {
+      markdownIt.renderer.rules.text = function (
+        tokens: Token[],
+        idx: number,
+        options: unknown,
+        env: unknown,
+        self: { renderToken: (...args: unknown[]) => string }
+      ) {
         if (importedVariables == null) return defaultRender(tokens, idx, options, env, self);
+
         const token = tokens[idx];
-        const text = <string>token.content;
+        const text = token.content;
 
         // Replace the variables in the text
         const newText = replaceText(text, importedVariables);
         resetImportedVariables();
+
         return newText;
       };
     },
@@ -74,7 +124,9 @@ export default function (context) {
  */
 function fetchLocalStoargeVariables() {
   const jsonStrong = localStorage.getItem('NoteVariables');
+
   if (jsonStrong == null) return {};
+
   const noteVariables = JSON.parse(jsonStrong);
 
   return noteVariables;
@@ -86,11 +138,12 @@ function fetchLocalStoargeVariables() {
  * @returns The merged variables and the valid imports
  */
 function mergeImports(imports: string[]) {
-  let result = { merged: {}, validImports: [] };
+  const result: { merged: Record<string, string>; validImports: string[] } = { merged: {}, validImports: [] };
 
   // The reverse is to give the first imports variables more priority
   [...imports].reverse().forEach(importValue => {
     if (noteVariables[importValue] == null) return;
+
     result.validImports.push(importValue);
     result.merged = {
       ...result.merged,
@@ -116,14 +169,18 @@ const resetImportedVariables = debounce(() => {
  */
 function replaceText(text: string, variables: { [key: string]: string }): string {
   if (text.length === 0) return '';
+
   const varKeys = Object.keys(variables);
+
   if (varKeys.length === 0) return text;
 
   const variablesLeft = { ...variables };
 
   for (const key of varKeys) {
     delete variablesLeft[key];
+
     const matchIndex = text.indexOf(key);
+
     if (matchIndex === -1) continue;
 
     const textSplit = text.split(key).map(splitText => {

@@ -3,10 +3,14 @@ import joplin from 'api';
 export const fetchAllNotes = async () => {
   const items = [];
   let page = 1;
-  while (true) {
+  let hasMore = true;
+
+  while (hasMore) {
     const result = await joplin.data.get(['notes'], { page });
     items.push(...result.items);
-    if (!result.has_more) return items;
+    hasMore = result.has_more;
     page++;
   }
+
+  return items;
 };
